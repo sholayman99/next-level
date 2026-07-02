@@ -29,6 +29,7 @@
     role: 'admin';
   };
 
+  //Type guard using 'in' operator to check if the user is an AdminUser or NormalUser
   const getUserInfo = (user: NormalUser | AdminUser): string => {
     if ('role' in user) {
       return `Admin User: ${user.name}, Age: ${user.age}, Role: ${user.role}`;
