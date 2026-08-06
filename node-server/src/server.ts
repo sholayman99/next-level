@@ -1,15 +1,7 @@
 import http, { Server } from 'http';
 import config from './config';
-import addRoutes, { RouterHandler, routes } from './helpers/routerHandler';
-
-addRoutes('GET', '/', (req, res) => {
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(
-    JSON.stringify({
-      message: 'Hello, World! from node.js with typescript',
-    })
-  );
-});
+import { RouterHandler, routes } from './helpers/RouterHandler';
+import './routes';
 
 const server: Server = http.createServer(
   (req: http.IncomingMessage, res: http.ServerResponse) => {
