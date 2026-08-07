@@ -3,6 +3,44 @@ import config from './config';
 import { RouterHandler, routes } from './helpers/RouterHandler';
 import './routes';
 
+function findDynamicRoute(method: string, url: string) {
+  // Get all routes registered for the requested HTTP method.
+  const methodRoutes = routes.get(method);
+  if (!methodRoutes) return null;
+
+  // Check each registered route to find a matching path.
+  for (const [routePath, handler] of methodRoutes.entries()) {
+    const routeParts: string[] = routePath.split('/');
+    const urlParts: string[] = url.split('/');
+
+    // Routes with different segment counts cannot match.
+    if (routeParts.length !== urlParts.length) continue;
+
+    const params: any = {};
+    let matched = true;
+
+    // Compare each path segment.
+    // Dynamic segments (e.g. :id) are captured as route parameters,
+    // while static segments must match exactly.
+    for (let i = 0; i < routeParts.length; i++) {
+      if (routeParts[i]?.startsWith(':')) {
+        params[routeParts[i]!.substring(1)] = urlParts[i];
+      } else if (routeParts[i] !== urlParts[i]) {
+        matched = false;
+        break;
+      }
+    }
+
+    // Return the matched handler along with extracted parameters.
+    if (matched) {
+      return { handler, params };
+    }
+  }
+
+  // No matching route was found.
+  return null;
+}
+
 const server: Server = http.createServer(
   (req: http.IncomingMessage, res: http.ServerResponse) => {
     console.log(`Received request: ${req.method} ${req.url}`);
@@ -15,6 +53,10 @@ const server: Server = http.createServer(
 
     if (handler) {
       handler(req, res);
+    } else if (findDynamicRoute(method, path)) {
+      const match = findDynamicRoute(method, path);
+      (req as any).params = match?.params;
+      match?.handler(req, res);
     } else {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(
@@ -26,62 +68,6 @@ const server: Server = http.createServer(
         })
       );
     }
-
-    // if (req.method === 'GET' && req.url === '/') {
-    //   res.writeHead(200, { 'Content-Type': 'application/json' });
-    //   res.end(
-    //     JSON.stringify({
-    //       message: 'Hello, World! from node.js with typescript',
-    //     })
-    //   );
-    // }
-
-    // if (req.method === 'GET' && req.url === '/health') {
-    //   res.writeHead(200, { 'Content-Type': 'application/json' });
-    //   res.end(JSON.stringify({ status: 'ok' }));
-    // }
-
-    // if (req.method === 'GET' && req.url === '/config') {
-    //   res.writeHead(200, { 'Content-Type': 'application/json' });
-    //   res.end(JSON.stringify(config));
-    // }
-
-    // if (req.method === 'GET' && req.url === '/error') {
-    //   res.writeHead(500, { 'Content-Type': 'application/json' });
-    //   res.end(JSON.stringify({ error: 'Internal Server Error' }));
-    // }
-
-    // if (req.method === 'GET' && req.url === '/not-found') {
-    //   res.writeHead(404, { 'Content-Type': 'application/json' });
-    //   res.end(JSON.stringify({ error: 'Not Found' }));
-    // }
-
-    // if (req.method === 'GET' && req.url === '/redirect') {
-    //   res.writeHead(302, { Location: '/' });
-    //   res.end();
-    // }
-
-    // if (req.method === 'GET' && req.url === '/timeout') {
-    //   setTimeout(() => {
-    //     res.writeHead(200, { 'Content-Type': 'application/json' });
-    //     res.end(JSON.stringify({ message: 'Request completed after timeout' }));
-    //   }, 5000);
-    // }
-
-    // if (req.method === 'POST' && req.url === '/users') {
-    //   let body = '';
-    //   req.on('data', (chunk) => {
-    //     body += chunk.toString();
-    //   });
-    //   req.on('end', () => {
-    //     try {
-    //       res.writeHead(200, { 'Content-Type': 'application/json' });
-    //       res.end(JSON.stringify({ message: 'User created:', data: body }));
-    //     } catch (err: any) {
-    //       console.log('Error processing request:', err);
-    //     }
-    //   });
-    // }
   }
 );
 
